@@ -22,6 +22,8 @@ async function bootstrap() {
     exclude: [
       { path: 'pay', method: RequestMethod.GET },
       { path: 'pay/subscription', method: RequestMethod.GET },
+      // Frontend polling endpoint for donation status:
+      { path: 'donations/:donation_id', method: RequestMethod.GET },
     ],
   });
   app.enableCors({ origin: true, credentials: true });
@@ -42,6 +44,19 @@ async function bootstrap() {
       const pathPart = qsIndex >= 0 ? rest.slice(0, qsIndex) : rest;
       const qs = qsIndex >= 0 ? rest.slice(qsIndex) : '';
       return res.redirect(`/pay${pathPart}${qs}`);
+    });
+
+    app.use(`/${normalizedPrefix}/donations`, (req: any, res: any, next: any) => {
+      if (req.method !== 'GET') return next();
+      const url = req.originalUrl || req.url || '';
+      const base = `/${normalizedPrefix}/donations`;
+      if (!url.startsWith(base)) return next();
+
+      const rest = url.slice(base.length); // e.g. "/<donation_id>?x=1"
+      const qsIndex = rest.indexOf('?');
+      const pathPart = qsIndex >= 0 ? rest.slice(0, qsIndex) : rest;
+      const qs = qsIndex >= 0 ? rest.slice(qsIndex) : '';
+      return res.redirect(`/donations${pathPart}${qs}`);
     });
   }
 

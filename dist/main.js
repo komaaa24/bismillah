@@ -22,6 +22,7 @@ async function bootstrap() {
         exclude: [
             { path: 'pay', method: common_1.RequestMethod.GET },
             { path: 'pay/subscription', method: common_1.RequestMethod.GET },
+            { path: 'donations/:donation_id', method: common_1.RequestMethod.GET },
         ],
     });
     app.enableCors({ origin: true, credentials: true });
@@ -39,6 +40,19 @@ async function bootstrap() {
             const pathPart = qsIndex >= 0 ? rest.slice(0, qsIndex) : rest;
             const qs = qsIndex >= 0 ? rest.slice(qsIndex) : '';
             return res.redirect(`/pay${pathPart}${qs}`);
+        });
+        app.use(`/${normalizedPrefix}/donations`, (req, res, next) => {
+            if (req.method !== 'GET')
+                return next();
+            const url = req.originalUrl || req.url || '';
+            const base = `/${normalizedPrefix}/donations`;
+            if (!url.startsWith(base))
+                return next();
+            const rest = url.slice(base.length);
+            const qsIndex = rest.indexOf('?');
+            const pathPart = qsIndex >= 0 ? rest.slice(0, qsIndex) : rest;
+            const qs = qsIndex >= 0 ? rest.slice(qsIndex) : '';
+            return res.redirect(`/donations${pathPart}${qs}`);
         });
     }
     app.use((req, res, next) => {

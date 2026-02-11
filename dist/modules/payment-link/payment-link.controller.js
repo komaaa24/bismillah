@@ -23,8 +23,28 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const entities_1 = require("../../shared/database/entities");
 const node_crypto_1 = require("node:crypto");
+const node_url_1 = require("node:url");
 const DONATION_USER_ID = '00000000-0000-4000-8000-000000000000';
 const DONATION_PLAN_ID = '00000000-0000-4000-8000-000000000001';
+function attachDonationIdToReturnUrl(returnUrl, donationId) {
+    if (!returnUrl)
+        return returnUrl;
+    if (!donationId)
+        return returnUrl;
+    try {
+        const u = new node_url_1.URL(returnUrl);
+        if (!u.searchParams.has('donation_id')) {
+            u.searchParams.set('donation_id', donationId);
+        }
+        return u.toString();
+    }
+    catch (_a) {
+        const sep = returnUrl.includes('?') ? '&' : '?';
+        if (returnUrl.includes('donation_id='))
+            return returnUrl;
+        return `${returnUrl}${sep}donation_id=${encodeURIComponent(donationId)}`;
+    }
+}
 let PaymentLinkController = class PaymentLinkController {
     constructor(configService, userRepository, planRepository) {
         this.configService = configService;
@@ -53,7 +73,8 @@ let PaymentLinkController = class PaymentLinkController {
         accountParts.push(`ac.donation_id=${finalDonationId}`);
         const parts = [`m=${merchantId}`, ...accountParts, `a=${amountTiyns}`];
         if (returnUrl) {
-            parts.push(`c=${encodeURIComponent(returnUrl)}`);
+            const enrichedReturnUrl = attachDonationIdToReturnUrl(returnUrl, finalDonationId);
+            parts.push(`c=${encodeURIComponent(enrichedReturnUrl)}`);
         }
         const paramString = parts.join(';');
         const encoded = Buffer.from(paramString).toString('base64');
@@ -112,7 +133,8 @@ let PaymentLinkController = class PaymentLinkController {
         ];
         const returnUrl = (query.returnUrl || '').trim();
         if (returnUrl) {
-            parts.push(`c=${encodeURIComponent(returnUrl)}`);
+            const enrichedReturnUrl = attachDonationIdToReturnUrl(returnUrl, donationId);
+            parts.push(`c=${encodeURIComponent(enrichedReturnUrl)}`);
         }
         const encoded = Buffer.from(parts.join(';')).toString('base64');
         const checkoutUrl = `https://checkout.paycom.uz/${encoded}`;

@@ -12,12 +12,29 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PlanEntity, UserEntity } from '../../shared/database/entities';
 import { randomUUID } from 'node:crypto';
+import { URL } from 'node:url';
 
 // If Payme Business requisites are locked and include user_id/plan_id,
 // we must still send those fields in checkout parameters. We use fixed UUIDs
 // to route such payments through the donation flow in our Merchant API.
 const DONATION_USER_ID = '00000000-0000-4000-8000-000000000000';
 const DONATION_PLAN_ID = '00000000-0000-4000-8000-000000000001';
+
+function attachDonationIdToReturnUrl(returnUrl: string, donationId: string): string {
+  if (!returnUrl) return returnUrl;
+  if (!donationId) return returnUrl;
+  try {
+    const u = new URL(returnUrl);
+    if (!u.searchParams.has('donation_id')) {
+      u.searchParams.set('donation_id', donationId);
+    }
+    return u.toString();
+  } catch {
+    const sep = returnUrl.includes('?') ? '&' : '?';
+    if (returnUrl.includes('donation_id=')) return returnUrl;
+    return `${returnUrl}${sep}donation_id=${encodeURIComponent(donationId)}`;
+  }
+}
 
 @Controller('pay')
 export class PaymentLinkController {
@@ -75,7 +92,9 @@ export class PaymentLinkController {
 
     const parts = [`m=${merchantId}`, ...accountParts, `a=${amountTiyns}`];
     if (returnUrl) {
-      parts.push(`c=${encodeURIComponent(returnUrl)}`);
+      // Make it easy for frontend to identify which donation was paid after Payme redirects back.
+      const enrichedReturnUrl = attachDonationIdToReturnUrl(returnUrl, finalDonationId);
+      parts.push(`c=${encodeURIComponent(enrichedReturnUrl)}`);
     }
 
     const paramString = parts.join(';');
@@ -162,7 +181,8 @@ export class PaymentLinkController {
 
     const returnUrl = (query.returnUrl || '').trim();
     if (returnUrl) {
-      parts.push(`c=${encodeURIComponent(returnUrl)}`);
+      const enrichedReturnUrl = attachDonationIdToReturnUrl(returnUrl, donationId);
+      parts.push(`c=${encodeURIComponent(enrichedReturnUrl)}`);
     }
 
     const encoded = Buffer.from(parts.join(';')).toString('base64');

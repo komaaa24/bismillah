@@ -10,14 +10,15 @@ exports.PaymentLinkModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const payment_link_controller_1 = require("./payment-link.controller");
+const donations_controller_1 = require("./donations.controller");
 const entities_1 = require("../../shared/database/entities");
 let PaymentLinkModule = class PaymentLinkModule {
 };
 exports.PaymentLinkModule = PaymentLinkModule;
 exports.PaymentLinkModule = PaymentLinkModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([entities_1.UserEntity, entities_1.PlanEntity])],
-        controllers: [payment_link_controller_1.PaymentLinkController],
+        imports: [typeorm_1.TypeOrmModule.forFeature([entities_1.UserEntity, entities_1.PlanEntity, entities_1.TransactionEntity])],
+        controllers: [payment_link_controller_1.PaymentLinkController, donations_controller_1.DonationsController],
     })
 ], PaymentLinkModule);
 //# sourceMappingURL=payment-link.module.js.map
