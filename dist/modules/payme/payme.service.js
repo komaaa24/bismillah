@@ -411,6 +411,7 @@ let PaymeService = class PaymeService {
         const transId = dto.params.id;
         const reason = dto.params.reason;
         const reasonText = (0, canceling_reason_message_1.getCancelReasonText)(reason);
+        logger_1.default.info('🟠 CancelTransaction received', { transId, reason, reasonText });
         const transaction = await this.transactionRepository.findOne({ where: { transId } });
         if (!transaction) {
             return { id: transId, error: payme_error_1.PaymeError.TransactionNotFound };

@@ -493,6 +493,7 @@ export class PaymeService {
     const transId = dto.params.id;
     const reason = dto.params.reason;
     const reasonText = getCancelReasonText(reason);
+    logger.info('🟠 CancelTransaction received', { transId, reason, reasonText });
     const transaction = await this.transactionRepository.findOne({ where: { transId } });
 
     if (!transaction) {
