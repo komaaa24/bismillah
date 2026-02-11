@@ -24,6 +24,7 @@ const error_status_codes_1 = require("./constants/error-status-codes");
 const transaction_state_1 = require("./constants/transaction-state");
 const payme_error_1 = require("./constants/payme-error");
 const canceling_reasons_1 = require("./constants/canceling-reasons");
+const canceling_reason_message_1 = require("./constants/canceling-reason-message");
 const logger_1 = __importDefault(require("../../shared/utils/logger"));
 const validation_helper_1 = require("../../shared/utils/validation.helper");
 const entities_1 = require("../../shared/database/entities");
@@ -408,6 +409,8 @@ let PaymeService = class PaymeService {
     async cancelTransaction(dto) {
         var _a, _b, _c;
         const transId = dto.params.id;
+        const reason = dto.params.reason;
+        const reasonText = (0, canceling_reason_message_1.getCancelReasonText)(reason);
         const transaction = await this.transactionRepository.findOne({ where: { transId } });
         if (!transaction) {
             return { id: transId, error: payme_error_1.PaymeError.TransactionNotFound };
@@ -417,9 +420,18 @@ let PaymeService = class PaymeService {
                 status: entities_1.TransactionStatus.CANCELED,
                 state: transaction_state_1.TransactionState.PendingCanceled,
                 cancelTime: new Date(),
-                reason: dto.params.reason,
+                reason,
             });
             const canceled = await this.transactionRepository.findOne({ where: { id: transaction.id } });
+            logger_1.default.warn('⚠️ Transaction canceled by CancelTransaction', {
+                transId,
+                transactionId: canceled === null || canceled === void 0 ? void 0 : canceled.id,
+                donationId: transaction.donationId,
+                previousStatus: transaction.status,
+                nextStatus: entities_1.TransactionStatus.CANCELED,
+                reason,
+                reasonText,
+            });
             return {
                 result: {
                     cancel_time: (_a = canceled === null || canceled === void 0 ? void 0 : canceled.cancelTime) === null || _a === void 0 ? void 0 : _a.getTime(),
@@ -441,9 +453,18 @@ let PaymeService = class PaymeService {
             status: entities_1.TransactionStatus.CANCELED,
             state: transaction_state_1.TransactionState.PaidCanceled,
             cancelTime: new Date(),
-            reason: dto.params.reason,
+            reason,
         });
         const updated = await this.transactionRepository.findOne({ where: { id: transaction.id } });
+        logger_1.default.warn('⚠️ Paid transaction canceled by CancelTransaction', {
+            transId,
+            transactionId: updated === null || updated === void 0 ? void 0 : updated.id,
+            donationId: transaction.donationId,
+            previousState: transaction.state,
+            nextState: transaction_state_1.TransactionState.PaidCanceled,
+            reason,
+            reasonText,
+        });
         return {
             result: {
                 cancel_time: (_c = updated === null || updated === void 0 ? void 0 : updated.cancelTime) === null || _c === void 0 ? void 0 : _c.getTime(),

@@ -2,6 +2,7 @@ import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TransactionEntity } from '../../shared/database/entities';
+import { getCancelReasonText } from '../payme/constants/canceling-reason-message';
 
 @Controller('donations')
 export class DonationsController {
@@ -34,6 +35,8 @@ export class DonationsController {
       donation_id: tx.donationId,
       status: tx.status,
       state: tx.state ?? null,
+      reason: tx.reason ?? null,
+      cancelReasonText: getCancelReasonText(tx.reason),
       amount: Number(tx.amount),
       transId: tx.transId ?? null,
       performTime: tx.performTime ? new Date(tx.performTime).toISOString() : null,
@@ -43,4 +46,3 @@ export class DonationsController {
     };
   }
 }
-

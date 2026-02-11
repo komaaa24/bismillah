@@ -17,12 +17,13 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const entities_1 = require("../../shared/database/entities");
+const canceling_reason_message_1 = require("../payme/constants/canceling-reason-message");
 let DonationsController = class DonationsController {
     constructor(transactionRepository) {
         this.transactionRepository = transactionRepository;
     }
     async getDonationStatus(donationId) {
-        var _a, _b;
+        var _a, _b, _c;
         const normalized = (donationId || '').trim();
         if (!normalized) {
             throw new common_1.NotFoundException('donation_id is required');
@@ -38,8 +39,10 @@ let DonationsController = class DonationsController {
             donation_id: tx.donationId,
             status: tx.status,
             state: (_a = tx.state) !== null && _a !== void 0 ? _a : null,
+            reason: (_b = tx.reason) !== null && _b !== void 0 ? _b : null,
+            cancelReasonText: (0, canceling_reason_message_1.getCancelReasonText)(tx.reason),
             amount: Number(tx.amount),
-            transId: (_b = tx.transId) !== null && _b !== void 0 ? _b : null,
+            transId: (_c = tx.transId) !== null && _c !== void 0 ? _c : null,
             performTime: tx.performTime ? new Date(tx.performTime).toISOString() : null,
             cancelTime: tx.cancelTime ? new Date(tx.cancelTime).toISOString() : null,
             createdAt: tx.createdAt ? new Date(tx.createdAt).toISOString() : null,

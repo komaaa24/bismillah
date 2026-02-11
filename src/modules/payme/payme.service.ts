@@ -13,6 +13,7 @@ import { TransactionState } from './constants/transaction-state';
 import { CheckTransactionDto } from './dto/check-transaction.dto';
 import { PaymeError } from './constants/payme-error';
 import { CancelingReasons } from './constants/canceling-reasons';
+import { getCancelReasonText } from './constants/canceling-reason-message';
 import logger from '../../shared/utils/logger';
 import { ValidationHelper } from '../../shared/utils/validation.helper';
 import {
@@ -490,6 +491,8 @@ export class PaymeService {
 
   async cancelTransaction(dto: CancelTransactionDto) {
     const transId = dto.params.id;
+    const reason = dto.params.reason;
+    const reasonText = getCancelReasonText(reason);
     const transaction = await this.transactionRepository.findOne({ where: { transId } });
 
     if (!transaction) {
@@ -503,11 +506,20 @@ export class PaymeService {
           status: TransactionStatus.CANCELED,
           state: TransactionState.PendingCanceled,
           cancelTime: new Date(),
-          reason: dto.params.reason,
+          reason,
         },
       );
 
       const canceled = await this.transactionRepository.findOne({ where: { id: transaction.id } });
+      logger.warn('⚠️ Transaction canceled by CancelTransaction', {
+        transId,
+        transactionId: canceled?.id,
+        donationId: transaction.donationId,
+        previousStatus: transaction.status,
+        nextStatus: TransactionStatus.CANCELED,
+        reason,
+        reasonText,
+      });
       return {
         result: {
           cancel_time: canceled?.cancelTime?.getTime(),
@@ -533,11 +545,20 @@ export class PaymeService {
         status: TransactionStatus.CANCELED,
         state: TransactionState.PaidCanceled,
         cancelTime: new Date(),
-        reason: dto.params.reason,
+        reason,
       },
     );
 
     const updated = await this.transactionRepository.findOne({ where: { id: transaction.id } });
+    logger.warn('⚠️ Paid transaction canceled by CancelTransaction', {
+      transId,
+      transactionId: updated?.id,
+      donationId: transaction.donationId,
+      previousState: transaction.state,
+      nextState: TransactionState.PaidCanceled,
+      reason,
+      reasonText,
+    });
     return {
       result: {
         cancel_time: updated?.cancelTime?.getTime(),

@@ -7,6 +7,8 @@ export declare class DonationsController {
         donation_id: string | undefined;
         status: import("../../shared/database/entities").TransactionStatus;
         state: number | null;
+        reason: number | null;
+        cancelReasonText: import("../payme/constants/canceling-reason-message").CancelReasonText | null;
         amount: number;
         transId: string | null;
         performTime: string | null;
