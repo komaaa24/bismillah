@@ -579,9 +579,9 @@ export class PaymeService {
 
     return {
       result: {
-        create_time: transaction.createdAt.getTime(),
-        perform_time: transaction.performTime ? new Date(transaction.performTime).getTime() : 0,
-        cancel_time: transaction.cancelTime ? new Date(transaction.cancelTime).getTime() : 0,
+        create_time: this.toEpochMs(transaction.createdAt),
+        perform_time: transaction.performTime ? this.toEpochMs(transaction.performTime) : 0,
+        cancel_time: transaction.cancelTime ? this.toEpochMs(transaction.cancelTime) : 0,
         transaction: transaction.id,
         state: transaction.state,
         reason: transaction.reason ?? null,
@@ -593,17 +593,19 @@ export class PaymeService {
     const all = await this.transactionRepository.find({ where: { provider: PaymentProvider.PAYME } });
     const from = new Date(dto.params.from);
     const to = new Date(dto.params.to);
+    const fromMs = from.getTime();
+    const toMs = to.getTime();
 
     const filtered = all.filter((tx) => {
-      const createdAt = new Date(tx.createdAt);
-      return createdAt >= from && createdAt <= to;
+      const createdAtMs = this.toEpochMs(tx.createdAt);
+      return createdAtMs >= fromMs && createdAtMs <= toMs;
     });
 
     return {
       result: {
         transactions: filtered.map((tx) => ({
           id: tx.transId,
-          time: new Date(tx.createdAt).getTime(),
+          time: this.toEpochMs(tx.createdAt),
           // Payme expects amount in tiyin (integer)
           amount: Math.round(Number(tx.amount) * 100),
           account: tx.donationId
@@ -616,9 +618,9 @@ export class PaymeService {
                 user_id: tx.userId,
                 plan_id: tx.planId,
               },
-          create_time: new Date(tx.createdAt).getTime(),
-          perform_time: tx.performTime ? new Date(tx.performTime).getTime() : 0,
-          cancel_time: tx.cancelTime ? new Date(tx.cancelTime).getTime() : null,
+          create_time: this.toEpochMs(tx.createdAt),
+          perform_time: tx.performTime ? this.toEpochMs(tx.performTime) : 0,
+          cancel_time: tx.cancelTime ? this.toEpochMs(tx.cancelTime) : null,
           transaction: tx.id,
           state: tx.state,
           reason: tx.reason || null,
@@ -648,8 +650,18 @@ export class PaymeService {
     return { requestTiyns, amountInSom };
   }
 
+  /**
+   * PostgreSQL TIMESTAMP WITHOUT TIME ZONE can be parsed as local time by node-postgres.
+   * Our DB stores UTC-like values, so we normalize by timezone offset to get true UTC epoch.
+   */
+  private toEpochMs(value: Date | string) {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return Date.now();
+    return d.getTime() - d.getTimezoneOffset() * 60_000;
+  }
+
   private isExpired(createdAt: Date) {
     const timeoutMs = 15 * 60 * 1000; // 15 minutes
-    return new Date(createdAt).getTime() < Date.now() - timeoutMs;
+    return this.toEpochMs(createdAt) < Date.now() - timeoutMs;
   }
 }

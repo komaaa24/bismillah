@@ -18,7 +18,12 @@ export class PaymeController {
 
     // Agar servis result/error bilan object qaytargan bo'lsa — JSON‑RPC formatida jo'natamiz.
     if (payload && typeof payload === 'object' && ('result' in payload || 'error' in payload)) {
-      return { ...base, ...payload };
+      // Keep JSON-RPC id from request; do not let service payload override it.
+      return {
+        ...base,
+        result: (payload as any).result,
+        error: (payload as any).error
+      };
     }
 
     // Fallback: boshqa tipdagi javoblar uchun ham minimal JSON‑RPC o'rami

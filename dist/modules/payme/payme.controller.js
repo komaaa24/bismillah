@@ -30,7 +30,7 @@ let PaymeController = class PaymeController {
         const payload = await this.paymeService.handleTransactionMethods(body);
         const base = { jsonrpc: '2.0', id: (_a = body === null || body === void 0 ? void 0 : body.id) !== null && _a !== void 0 ? _a : null };
         if (payload && typeof payload === 'object' && ('result' in payload || 'error' in payload)) {
-            return Object.assign(Object.assign({}, base), payload);
+            return Object.assign(Object.assign({}, base), { result: payload.result, error: payload.error });
         }
         return Object.assign(Object.assign({}, base), { result: payload });
     }

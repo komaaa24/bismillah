@@ -483,9 +483,9 @@ let PaymeService = class PaymeService {
         }
         return {
             result: {
-                create_time: transaction.createdAt.getTime(),
-                perform_time: transaction.performTime ? new Date(transaction.performTime).getTime() : 0,
-                cancel_time: transaction.cancelTime ? new Date(transaction.cancelTime).getTime() : 0,
+                create_time: this.toEpochMs(transaction.createdAt),
+                perform_time: transaction.performTime ? this.toEpochMs(transaction.performTime) : 0,
+                cancel_time: transaction.cancelTime ? this.toEpochMs(transaction.cancelTime) : 0,
                 transaction: transaction.id,
                 state: transaction.state,
                 reason: (_a = transaction.reason) !== null && _a !== void 0 ? _a : null,
@@ -496,15 +496,17 @@ let PaymeService = class PaymeService {
         const all = await this.transactionRepository.find({ where: { provider: entities_1.PaymentProvider.PAYME } });
         const from = new Date(dto.params.from);
         const to = new Date(dto.params.to);
+        const fromMs = from.getTime();
+        const toMs = to.getTime();
         const filtered = all.filter((tx) => {
-            const createdAt = new Date(tx.createdAt);
-            return createdAt >= from && createdAt <= to;
+            const createdAtMs = this.toEpochMs(tx.createdAt);
+            return createdAtMs >= fromMs && createdAtMs <= toMs;
         });
         return {
             result: {
                 transactions: filtered.map((tx) => ({
                     id: tx.transId,
-                    time: new Date(tx.createdAt).getTime(),
+                    time: this.toEpochMs(tx.createdAt),
                     amount: Math.round(Number(tx.amount) * 100),
                     account: tx.donationId
                         ? {
@@ -516,9 +518,9 @@ let PaymeService = class PaymeService {
                             user_id: tx.userId,
                             plan_id: tx.planId,
                         },
-                    create_time: new Date(tx.createdAt).getTime(),
-                    perform_time: tx.performTime ? new Date(tx.performTime).getTime() : 0,
-                    cancel_time: tx.cancelTime ? new Date(tx.cancelTime).getTime() : null,
+                    create_time: this.toEpochMs(tx.createdAt),
+                    perform_time: tx.performTime ? this.toEpochMs(tx.performTime) : 0,
+                    cancel_time: tx.cancelTime ? this.toEpochMs(tx.cancelTime) : null,
                     transaction: tx.id,
                     state: tx.state,
                     reason: tx.reason || null,
@@ -542,9 +544,15 @@ let PaymeService = class PaymeService {
         const amountInSom = requestTiyns / 100;
         return { requestTiyns, amountInSom };
     }
+    toEpochMs(value) {
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime()))
+            return Date.now();
+        return d.getTime() - d.getTimezoneOffset() * 60000;
+    }
     isExpired(createdAt) {
         const timeoutMs = 15 * 60 * 1000;
-        return new Date(createdAt).getTime() < Date.now() - timeoutMs;
+        return this.toEpochMs(createdAt) < Date.now() - timeoutMs;
     }
 };
 exports.PaymeService = PaymeService;

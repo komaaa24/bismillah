@@ -308,5 +308,6 @@ export declare class PaymeService {
         };
     }>;
     private normalizeAmount;
+    private toEpochMs;
     private isExpired;
 }
